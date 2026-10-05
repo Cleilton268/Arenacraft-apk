@@ -310,18 +310,32 @@
   #callOutgoingScreen h1 { font-size:18px; text-shadow:3px 3px 0 #000; letter-spacing:1px; margin-bottom:18px; color:#7CFC7C; }
   #callOutgoingScreen #callCancelBtn { margin-top:26px; }
 
-  #incomingCallOverlay { position:fixed; inset:0; z-index:92; background:rgba(0,0,0,0.72); display:none; align-items:center; justify-content:center; padding:20px; }
+  #incomingCallOverlay { position:fixed; inset:0; z-index:92; background:rgba(0,0,0,0.55); display:none; align-items:flex-start; justify-content:center; padding:calc(14px + env(safe-area-inset-top, 0px)) 14px 14px; }
   #incomingCallOverlay.show { display:flex; }
-  .incomingCallBox { background:#3f3f3f; border:4px solid #000; box-shadow: inset -3px -3px 0 #2b2b2b, inset 3px 3px 0 #6b6b6b, 0 0 0 2px #000; padding:26px 22px; text-align:center; max-width:280px; }
+  .incomingCallBox { width:100%; max-width:340px; animation: callPopIn 0.25s ease-out; background:#3f3f3f; border:4px solid #000; box-shadow: inset -3px -3px 0 #2b2b2b, inset 3px 3px 0 #6b6b6b, 0 0 0 2px #000; padding:26px 22px; text-align:center; max-width:280px; }
   .incomingCallIcon { font-size:34px; margin-bottom:10px; animation: callRing 0.5s infinite; }
   @keyframes callRing { 0%,100% { transform:rotate(0deg); } 25% { transform:rotate(-15deg); } 75% { transform:rotate(15deg); } }
   #incomingCallText { color:#fff; font-size:14px; line-height:1.5; text-shadow:1px 1px 0 #000; margin-bottom:20px; }
-  .incomingCallBtns { display:flex; gap:22px; justify-content:center; }
+  @keyframes callPopIn { from { transform:translateY(-40px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+  .incomingCallBtns { display:flex; gap:46px; justify-content:center; }
+  .incomingCallBtns .callRoundBtn { width:64px; height:64px; font-size:26px; }
   .callRoundBtn { width:56px; height:56px; border-radius:50%; border:4px solid #000; font-size:22px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 0 0 2px #000; }
   .callRoundBtn.callAccept { background:#3b8f4a; box-shadow: inset -2px -2px 0 #276332, inset 2px 2px 0 #6fcf7f, 0 0 0 2px #000; }
   .callRoundBtn.callDecline { background:#8f3b3b; box-shadow: inset -2px -2px 0 #632727, inset 2px 2px 0 #cf6f6f, 0 0 0 2px #000; }
   .callRoundBtn.callDecline span { display:inline-block; transform:rotate(135deg); }
 
+
+  /* Tela de permissões (aparece na primeira abertura / depois de reinstalar) */
+  #permScreen { position:fixed; inset:0; z-index:9000; background:linear-gradient(160deg, #8a8a8a 0%, #6b6b6b 45%, #4d4d4d 100%); color:#fff; display:none; flex-direction:column; align-items:center; justify-content:center; padding:20px; font-family:'Pixelify Sans','Silkscreen','Courier New',monospace; text-align:center; overflow-y:auto; }
+  #permScreen.show { display:flex; }
+  #permScreen h1 { font-size:20px; letter-spacing:2px; text-shadow:3px 3px 0 #000; margin-bottom:6px; }
+  #permScreen .permSub { font-size:12px; opacity:0.85; margin-bottom:16px; max-width:300px; line-height:1.5; text-shadow:1px 1px 0 #000; }
+  .permRow { width:300px; max-width:90vw; display:flex; align-items:center; gap:10px; background:#3f3f3f; border:3px solid #2b2b2b; box-shadow: inset -2px -2px 0 #2a2a2a, inset 2px 2px 0 #565656; padding:9px 10px; margin-bottom:8px; text-align:left; }
+  .permRow .permIcon { font-size:22px; width:28px; text-align:center; }
+  .permRow .permInfo { flex:1; font-size:12px; line-height:1.35; text-shadow:1px 1px 0 #000; }
+  .permRow .permInfo b { display:block; font-size:13px; letter-spacing:1px; }
+  .permRow .permState { font-size:11px; min-width:62px; text-align:right; text-shadow:1px 1px 0 #000; }
+  .permRow.ok .permState { color:#7CFC7C; } .permRow.no .permState { color:#ff7b7b; } .permRow.na .permState { color:#ffd76a; }
   #activeCallBar { position:fixed; left:0; right:0; bottom:0; z-index:90; background:#2b6b35; border-top:3px solid #000; display:none; align-items:center; justify-content:space-between; padding:10px 14px; color:#fff; font-size:12px; text-shadow:1px 1px 0 #000; box-sizing:border-box; }
   #activeCallBar.show { display:flex; }
   #activeCallBar .callRoundBtn { width:38px; height:38px; font-size:15px; }
@@ -501,7 +515,8 @@
     100% { opacity:0.18; }
   }
 
-  #bootBarOuter { width:230px; max-width:70vw; height:22px; box-sizing:border-box; background:#2b2b2b; border:3px solid #171717; padding:3px; }
+  #bootSplash.bootBlack { background:#000 !important; }
+  #bootBarOuter, #bootDlBarOuter { width:230px; max-width:70vw; height:22px; box-sizing:border-box; background:#2b2b2b; border:3px solid #171717; padding:3px; }
   #bootBarInner { height:100%; width:0%; background:#3b8f4a; box-shadow: inset -2px -2px 0 #276332, inset 2px 2px 0 #6fcf7f; }
 
 </style>
@@ -520,6 +535,13 @@
     </div>
     <div id="bootSplashPct" style="color:#fff; font-family:'Pixelify Sans','Silkscreen','Courier New',monospace; font-size:13px; letter-spacing:1px; text-shadow:1px 1px 0 rgba(0,0,0,0.3);">0%</div>
     <div id="bootSplashStatus" style="display:none; color:#fff; font-family:'Pixelify Sans','Silkscreen','Courier New',monospace; font-size:13px; letter-spacing:1px; text-shadow:1px 1px 0 rgba(0,0,0,0.3);">Conectando ao servidor...</div>
+  </div>
+  <div id="bootDlBox" style="display:none; flex-direction:column; align-items:center; gap:14px; text-align:center; max-width:84vw; color:#fff; font-family:'Pixelify Sans','Silkscreen','Courier New',monospace; text-shadow:1px 1px 0 rgba(0,0,0,0.3);">
+    <div style="font-size:17px; letter-spacing:2px;">Baixando conteúdo...</div>
+    <div id="bootDlItem" style="font-size:12px; letter-spacing:1px; opacity:0.85; min-height:15px;">&nbsp;</div>
+    <div id="bootDlSize" style="font-size:13px; letter-spacing:1px;">0KB/0KB</div>
+    <div id="bootDlBarOuter"><div id="bootDlBarInner" style="height:100%; width:0%; background:#3b8f4a; box-shadow: inset -2px -2px 0 #276332, inset 2px 2px 0 #6fcf7f;"></div></div>
+    <div id="bootDlPct" style="font-size:13px; letter-spacing:1px;">0%</div>
   </div>
   <div id="bootOfflineBox" style="display:none; position:absolute; inset:0; z-index:2; background:linear-gradient(160deg, #8a8a8a 0%, #6b6b6b 45%, #4d4d4d 100%); color:#fff; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; font-family:'Pixelify Sans','Silkscreen','Courier New',monospace;">
     <p style="font-size:14px; line-height:1.5; max-width:300px; margin:0 0 22px; text-shadow:2px 2px 0 #000;">Sem conexão com a internet, por favor conecte a internet e tente novamente.</p>
@@ -1056,6 +1078,17 @@
   <button class="mcBtn" id="bannedOkBtn">OK</button>
 </div>
 
+<div id="permScreen">
+  <h1>PERMISSÕES</h1>
+  <div class="permSub">Pra ligações, notificações e o jogo funcionarem direito, o ArenaCraft precisa de acesso a:</div>
+  <div class="permRow" id="permRow_notif"><span class="permIcon">🔔</span><span class="permInfo"><b>Notificações</b>Avisar de ligações e mensagens</span><span class="permState" id="permState_notif">—</span></div>
+  <div class="permRow" id="permRow_files"><span class="permIcon">📁</span><span class="permInfo"><b>Arquivos</b>Guardar o conteúdo do jogo</span><span class="permState" id="permState_files">—</span></div>
+  <div class="permRow" id="permRow_mic"><span class="permIcon">🎤</span><span class="permInfo"><b>Microfone</b>Ligações e áudios no chat</span><span class="permState" id="permState_mic">—</span></div>
+  <div class="permRow" id="permRow_phone"><span class="permIcon">📞</span><span class="permInfo"><b>Telefone</b>Receber ligações com o jogo</span><span class="permState" id="permState_phone">—</span></div>
+  <button class="mcBtn" id="permAllowBtn" style="width:300px; max-width:90vw; margin-top:10px;">PERMITIR TUDO</button>
+  <button class="backBtn" id="permSkipBtn" style="margin-top:12px;">agora não</button>
+</div>
+
 <div id="callOutgoingScreen" class="lobbyScreen">
   <h1 id="callOutgoingTitle">LIGANDO...</h1>
   <div class="spinner"></div>
@@ -1204,6 +1237,122 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <script>
+// ---- Conta salva junto com o conteúdo baixado ----
+// O login (e-mail + chave de sessão) fica no localStorage E numa cópia no Cache Storage
+// (o mesmo cache do "Baixando conteúdo..."). Se o localStorage sumir mas o cache continuar,
+// o jogo entra sozinho na conta que a pessoa já tinha logado.
+(function(){
+  var CK = 'arenacraft-content-v1', KEY = location.origin + '/__ac_account';
+  function hasC(){ try { return 'caches' in window; } catch(e){ return false; } }
+  window.acSaveAccount = function(email, token){
+    try {
+      if (!email || !token || !hasC()) return;
+      caches.open(CK).then(function(c){
+        return c.put(KEY, new Response(JSON.stringify({ e: email, t: token }), { headers:{ 'Content-Type':'application/json' } }));
+      }).catch(function(){});
+    } catch(e){}
+  };
+  window.acSaveAccountFromLocal = function(){
+    try { window.acSaveAccount(localStorage.getItem('phanixEmail'), localStorage.getItem('phanixToken')); } catch(e){}
+  };
+  window.acClearAccount = function(){
+    try { if (hasC()) caches.open(CK).then(function(c){ return c.delete(KEY); }).catch(function(){}); } catch(e){}
+  };
+  window.acRestoreAccount = function(){
+    return new Promise(function(res){
+      try {
+        if (localStorage.getItem('phanixEmail') && localStorage.getItem('phanixToken')) return res(true);
+        if (!hasC()) return res(false);
+        caches.open(CK).then(function(c){ return c.match(KEY); })
+          .then(function(r){ return r ? r.json() : null; })
+          .then(function(d){
+            if (d && d.e && d.t){ localStorage.setItem('phanixEmail', d.e); localStorage.setItem('phanixToken', d.t); res(true); }
+            else res(false);
+          }).catch(function(){ res(false); });
+      } catch(e){ res(false); }
+    });
+  };
+})();
+
+// ---- Tela de permissões ----
+(function(){
+  var DONE = 'arenacraftPermsAsked';
+  function $(id){ return document.getElementById(id); }
+  function setState(k, st){
+    var row = $('permRow_' + k), el = $('permState_' + k); if (!row || !el) return;
+    row.className = 'permRow ' + (st === 'ok' ? 'ok' : st === 'no' ? 'no' : st === 'na' ? 'na' : '');
+    el.textContent = st === 'ok' ? '✔ ativo' : st === 'no' ? '✖ negado' : st === 'na' ? 'só no app' : '...';
+  }
+  function cap(name){ try { return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins[name]; } catch(e){ return null; } }
+  function granted(r){ if (!r) return false; var v = r.display || r.publicStorage || r.receive || r.granted || r.state; return v === 'granted' || v === true; }
+
+  function askNotif(){
+    return new Promise(function(res){
+      var ln = cap('LocalNotifications') || cap('PushNotifications');
+      if (ln && ln.requestPermissions){ ln.requestPermissions().then(function(r){ setState('notif', granted(r) ? 'ok' : 'no'); res(); }, function(){ setState('notif','no'); res(); }); return; }
+      if (!('Notification' in window)){ setState('notif','na'); return res(); }
+      if (Notification.permission === 'granted'){ setState('notif','ok'); return res(); }
+      try {
+        var p = Notification.requestPermission(function(r){ setState('notif', r === 'granted' ? 'ok' : 'no'); });
+        if (p && p.then) p.then(function(r){ setState('notif', r === 'granted' ? 'ok' : 'no'); res(); }, function(){ setState('notif','no'); res(); });
+        else setTimeout(res, 400);
+      } catch(e){ setState('notif','no'); res(); }
+    });
+  }
+  function askFiles(){
+    return new Promise(function(res){
+      var fs = cap('Filesystem');
+      if (fs && fs.requestPermissions){ fs.requestPermissions().then(function(r){ setState('files', granted(r) ? 'ok' : 'no'); res(); }, function(){ setState('files','no'); res(); }); return; }
+      // No navegador: pede armazenamento persistente (o sistema não apaga o conteúdo baixado).
+      try {
+        if (navigator.storage && navigator.storage.persist){ navigator.storage.persist().then(function(ok){ setState('files', ok ? 'ok' : 'no'); res(); }, function(){ setState('files','no'); res(); }); return; }
+      } catch(e){}
+      setState('files','na'); res();
+    });
+  }
+  function askMic(){
+    return new Promise(function(res){
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ setState('mic','na'); return res(); }
+      navigator.mediaDevices.getUserMedia({ audio:true }).then(function(st){
+        try { st.getTracks().forEach(function(t){ t.stop(); }); } catch(e){}
+        setState('mic','ok'); res();
+      }, function(){ setState('mic','no'); res(); });
+    });
+  }
+  function askPhone(){
+    return new Promise(function(res){
+      // "Telefone" (receber ligação/vibrar com o jogo fechado) é permissão nativa do Android:
+      // a página sozinha não consegue pedir. Se o APK tiver o plugin AcPermissions, usa; senão avisa.
+      var pl = cap('AcPermissions');
+      if (pl && pl.request){ pl.request({ name:'phone' }).then(function(r){ setState('phone', granted(r) ? 'ok' : 'no'); res(); }, function(){ setState('phone','no'); res(); }); return; }
+      setState('phone','na'); res();
+    });
+  }
+  function close(){
+    try { localStorage.setItem(DONE, '1'); } catch(e){}
+    $('permScreen').classList.remove('show');
+  }
+  window.acShowPermissions = function(){
+    try { if (localStorage.getItem(DONE) === '1') return; } catch(e){}
+    var el = $('permScreen'); if (!el) return;
+    el.classList.add('show');
+  };
+  document.addEventListener('DOMContentLoaded', function(){
+    var allow = $('permAllowBtn'), skip = $('permSkipBtn'); if (!allow || !skip) return;
+    var busy = false, finished = false;
+    allow.addEventListener('click', function(){
+      if (finished){ close(); return; }
+      if (busy) return; busy = true; allow.textContent = 'PEDINDO...';
+      ['notif','files','mic','phone'].forEach(function(k){ setState(k, ''); });
+      askNotif().then(askFiles).then(askMic).then(askPhone).then(function(){
+        busy = false; finished = true; allow.textContent = 'CONTINUAR';
+      });
+    });
+    skip.addEventListener('click', close);
+  });
+})();
+</script>
+<script>
 (function bootSplashSequence(){
   var boot = document.getElementById('bootSplash');
   var label = document.getElementById('bootSplashLabel');
@@ -1212,6 +1361,11 @@ if ('serviceWorker' in navigator) {
   var pctEl = document.getElementById('bootSplashPct');
   var statusEl = document.getElementById('bootSplashStatus');
   var offlineBox = document.getElementById('bootOfflineBox');
+  var dlBox = document.getElementById('bootDlBox');
+  var dlItem = document.getElementById('bootDlItem');
+  var dlSize = document.getElementById('bootDlSize');
+  var dlBar = document.getElementById('bootDlBarInner');
+  var dlPct = document.getElementById('bootDlPct');
   var runId = 0;
 
   // ---- Carregamento REAL ----
@@ -1244,6 +1398,137 @@ if ('serviceWorker' in navigator) {
     return { pct: pct, text: text };
   }
 
+
+  // ---- Primeira abertura / reinstalação: "Baixando conteúdo..." ----
+  // Desinstalar o app apaga o localStorage e o Cache Storage deste aparelho. Se a marca
+  // (localStorage) OU o cache do conteúdo não existem, o jogo entende que é uma instalação nova.
+  var DL_MARK = 'arenacraftInstalledV1', DL_CACHE = 'arenacraft-content-v1';
+  var DL_THREE = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+  function detectDownload(){
+    var mark = false;
+    try { localStorage.setItem('arenacraftProbe', '1'); localStorage.removeItem('arenacraftProbe'); mark = localStorage.getItem(DL_MARK) === '1'; }
+    catch(e){ return Promise.resolve(false); }   // sem localStorage não dá pra lembrar: não baixa em toda abertura
+    if (!('caches' in window)) return Promise.resolve(!mark);
+    return caches.has(DL_CACHE).then(function(has){ return !(mark && has); }, function(){ return !mark; });
+  }
+  function fmtBytes(n){
+    if (n < 1024) return Math.round(n) + 'B';
+    if (n < 1048576) return Math.round(n / 1024) + 'KB';
+    return (n / 1048576).toFixed(1).replace('.', ',') + 'MB';
+  }
+  // Lista o que baixar: página do jogo, motor 3D e fontes (só o subconjunto latin).
+  function listResources(){
+    var list = [
+      { name:'Arquivos do jogo', url: location.origin + '/', opts:{ cache:'no-store' } },
+      { name:'Motor 3D', url: DL_THREE, opts:{ mode:'cors' } }
+    ];
+    var lk = document.querySelector('link[href*="fonts.googleapis.com/css"]');
+    if (!lk) return Promise.resolve(list);
+    return fetch(lk.href, { mode:'cors' }).then(function(r){
+      if (!r.ok) throw new Error('css');
+      var keep = r.clone();
+      return r.text().then(function(css){
+        list.push({ name:'Fontes', url: lk.href, resp: keep });
+        var seen = {}, re = /\/\*\s*([\w-]+)\s*\*\/\s*@font-face\s*\{[^}]*?url\(([^)]+)\)/g, m;
+        while ((m = re.exec(css))){
+          var u = m[2].replace(/['"]/g, '');
+          if (m[1] === 'latin' && !seen[u]){ seen[u] = 1; list.push({ name:'Fontes', url:u, opts:{ mode:'cors' } }); }
+        }
+        return list;
+      });
+    }).catch(function(){ return list; });   // fonte indisponível não trava a instalação
+  }
+
+  function runDownload(my, onDone){
+    boot.classList.add('bootGray');
+    label.textContent = 'ARENACRAFT';
+    label.style.fontSize = '47px'; label.style.letterSpacing = '8px'; label.style.opacity = '1';
+    loader.style.display = 'none'; statusEl.style.display = 'none';
+    dlBox.style.display = 'flex';
+    dlItem.textContent = 'Preparando...'; dlSize.textContent = '0KB/0KB'; dlBar.style.width = '0%'; dlPct.textContent = '0%';
+    var items = [], cacheTasks = [], failed = false;
+    var cacheP = ('caches' in window) ? caches.open(DL_CACHE).catch(function(){ return null; }) : Promise.resolve(null);
+    function fail(){
+      if (failed || my !== runId) return;
+      failed = true;
+      dlItem.textContent = 'Sem conexão com a internet';
+      offlineBox.style.display = 'flex';   // o OK do aviso reinicia e tenta baixar de novo
+    }
+    listResources().then(function(list){
+      items = list;
+      return Promise.all(list.map(function(it){
+        return (it.resp ? Promise.resolve(it.resp) : fetch(it.url, it.opts)).then(function(r){
+          if (!r.ok) throw new Error('http ' + r.status);
+          it.resp = r;
+          var cl = parseInt(r.headers.get('content-length') || '0', 10);
+          it.total = cl > 0 ? cl : 0; it.loaded = 0; it.done = false;
+        });
+      }));
+    }).then(function(){
+      items.forEach(function(it){
+        var forCache = it.resp.clone();
+        cacheTasks.push(cacheP.then(function(c){ return c ? c.put(it.url, forCache).catch(function(){}) : null; }));
+        var rd = it.resp.body && it.resp.body.getReader();
+        if (!rd){ it.resp.arrayBuffer().then(function(b){ it.loaded = it.total = b.byteLength; it.done = true; }, fail); return; }
+        (function pump(){
+          rd.read().then(function(x){
+            if (x.done){ it.done = true; if (!it.total) it.total = it.loaded; return; }
+            it.loaded += x.value.length; pump();
+          }).catch(fail);
+        })();
+      });
+      startTick();
+    }).catch(fail);
+
+    function startTick(){
+      var shown = 0, lastT = performance.now(), maxPct = 0, finishing = false;
+      function tick(now){
+        if (my !== runId || failed) return;
+        var dt = Math.max(0, Math.min(0.5, (now - lastT) / 1000)); lastT = now;
+        var tot = 0, ld = 0, all = true;
+        items.forEach(function(it){
+          var t = it.total || it.loaded; it.t = t; it.l = it.done ? t : Math.min(it.loaded, t);
+          tot += t; ld += it.l; if (!it.done) all = false;
+        });
+        // anda no máximo até o que foi baixado de verdade, mas num ritmo que dá pra ler (~2s no total)
+        shown = Math.min(ld, shown + Math.max(tot / 2.2, 60 * 1024) * dt);
+        var pct = tot > 0 ? Math.min(100, Math.floor(shown / tot * 100)) : 0;
+        if (pct < maxPct) pct = maxPct; maxPct = pct;
+        var name = 'Dados antigos deste dispositivo', acc = 0;
+        for (var i = 0; i < items.length; i++){ acc += items[i].t; if (shown < acc){ name = items[i].name; break; } }
+        dlItem.textContent = name;
+        dlSize.textContent = fmtBytes(shown) + '/' + fmtBytes(tot);
+        dlBar.style.width = pct + '%'; dlPct.textContent = pct + '%';
+        if (all && shown >= ld - 1 && !finishing){
+          finishing = true;
+          dlItem.textContent = 'Dados antigos deste dispositivo';
+          dlSize.textContent = fmtBytes(tot) + '/' + fmtBytes(tot); dlBar.style.width = '100%'; dlPct.textContent = '100%';
+          Promise.all(cacheTasks).then(function(){ return new Promise(function(r){ setTimeout(r, 700); }); }).then(function(){
+            if (my !== runId) return;
+            try { localStorage.setItem(DL_MARK, '1'); } catch(e){}
+            try { window.acSaveAccountFromLocal(); } catch(e){}   // a conta já logada fica guardada junto com o conteúdo
+            onDone();
+          });
+          return;
+        }
+        if (!finishing) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+  }
+
+  // Tudo preto por um instante e entra no carregamento normal (sem o nome PHANIX GAMES).
+  function blackout(my, next){
+    dlBox.style.display = 'none';
+    label.style.opacity = '0';
+    boot.classList.add('bootBlack');
+    setTimeout(function(){
+      if (my !== runId) return;
+      boot.classList.remove('bootBlack');
+      next();
+    }, 900);
+  }
+
   function startBoot(){
     var my = ++runId;
     window.__bootActive = true;
@@ -1256,16 +1541,16 @@ if ('serviceWorker' in navigator) {
     loader.style.display = 'none';
     statusEl.style.display = 'none';
     offlineBox.style.display = 'none';
+    dlBox.style.display = 'none'; boot.classList.remove('bootBlack');
     barInner.style.width = '0%';
     pctEl.textContent = '0%';
     if (typeof window.__bootReconnect === 'function') window.__bootReconnect(); // reinício (OK do aviso): tenta conectar de novo já
 
-    // Fase 1: "PHANIX GAMES" (fundo vermelho) por 2s — o carregamento real já anda por trás.
-    setTimeout(function(){
+    // Reinstalação detectada: pula o PHANIX GAMES, baixa o conteúdo, tela preta e carregamento.
+    // Caso normal: Fase 1: "PHANIX GAMES" (fundo vermelho) por 2s — o carregamento real já anda por trás.
+    label.style.opacity = '0';
+    function phase2(){
       if (my !== runId) return;
-      label.style.opacity = '0';
-      setTimeout(function(){
-        if (my !== runId) return;
         // Fase 2: fundo cinza escuro, "ARENACRAFT" (50% maior) e a barra, que segue o progresso real.
         boot.classList.add('bootGray');
         label.textContent = 'ARENACRAFT';
@@ -1307,7 +1592,7 @@ if ('serviceWorker' in navigator) {
           setTimeout(function(){
             if (my !== runId) return;
             boot.classList.add('bootHide');
-            setTimeout(function(){ if (my === runId){ boot.style.display = 'none'; window.__bootActive = false; } }, 500);
+            setTimeout(function(){ if (my === runId){ boot.style.display = 'none'; window.__bootActive = false; try { if (window.acShowPermissions) window.acShowPermissions(); } catch(e){} } }, 500);
           }, 250);
         }
         function tick(now){
@@ -1355,8 +1640,17 @@ if ('serviceWorker' in navigator) {
         }
         document.addEventListener('visibilitychange', onVisible);
         requestAnimationFrame(tick);
-      }, 0); // corte seco (sem transição), igual ao Minecraft
-    }, 2000);
+    }
+    detectDownload().then(function(need){
+      if (my !== runId) return;
+      if (need){ runDownload(my, function(){ blackout(my, phase2); }); return; }
+      label.style.opacity = '1';
+      setTimeout(function(){
+        if (my !== runId) return;
+        label.style.opacity = '0';
+        setTimeout(phase2, 0); // corte seco (sem transição), igual ao Minecraft
+      }, 2000);
+    });
   }
 
   // OK no aviso: volta pro "PHANIX GAMES" e refaz a tela de carregamento.
@@ -2910,6 +3204,7 @@ function doPhanixLogout(){
   updateAdminUI();
   localStorage.removeItem('phanixEmail');
   localStorage.removeItem('phanixToken');
+  try { window.acClearAccount(); } catch(e){}
   phanixStep = 'login';
   renderPhanixContent();
   setLoggedInUI(false);
@@ -3955,12 +4250,52 @@ function resetCallState(){
   callPrePcSignalQueue = [];
 }
 
+let ringVibTimer = null;
+function startRingVibration(){
+  stopRingVibration();
+  const buzz = () => { try { if (navigator.vibrate) navigator.vibrate([700, 350, 700, 350]); } catch(e){} };
+  buzz();
+  ringVibTimer = setInterval(buzz, 2100);   // fica vibrando até atender, recusar ou a pessoa desligar
+}
+function stopRingVibration(){
+  if (ringVibTimer){ clearInterval(ringVibTimer); ringVibTimer = null; }
+  try { if (navigator.vibrate) navigator.vibrate(0); } catch(e){}
+}
+function showCallSystemNotification(username){
+  // App em segundo plano: aviso do sistema com Atender / Recusar (precisa da permissão de notificações)
+  try {
+    if (!document.hidden || !('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!navigator.serviceWorker || !navigator.serviceWorker.ready) return;
+    navigator.serviceWorker.ready.then(reg => reg.showNotification('📞 ' + (username || 'Alguém') + ' está ligando', {
+      body: 'Toque pra atender no ArenaCraft', tag: 'ac-call', renotify: true, requireInteraction: true,
+      vibrate: [700, 350, 700, 350, 700], actions: [{ action:'accept', title:'Atender' }, { action:'decline', title:'Recusar' }]
+    })).catch(()=>{});
+  } catch(e){}
+}
+function clearCallSystemNotification(){
+  try {
+    if (!navigator.serviceWorker || !navigator.serviceWorker.ready) return;
+    navigator.serviceWorker.ready.then(reg => reg.getNotifications({ tag:'ac-call' }).then(l => l.forEach(n => n.close()))).catch(()=>{});
+  } catch(e){}
+}
+if ('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message', (ev) => {
+    const d = ev.data || {};
+    if (d.type !== 'acCallAction' || !callId || callRole !== 'callee') return;
+    const btn = document.getElementById(d.action === 'decline' ? 'callDeclineBtn' : 'callAcceptBtn');
+    if (btn) btn.click();
+  });
+}
 function showIncomingCallPopup(username){
   document.getElementById('incomingCallText').textContent = (username || 'Alguém') + ' Está ligando para você!';
   document.getElementById('incomingCallOverlay').classList.add('show');
+  startRingVibration();
+  showCallSystemNotification(username);
 }
 function hideIncomingCallPopup(){
   document.getElementById('incomingCallOverlay').classList.remove('show');
+  stopRingVibration();
+  clearCallSystemNotification();
 }
 function showActiveCallBar(){
   document.getElementById('activeCallText').textContent = '📞 Em chamada com ' + (callPeerUsername || '');
@@ -4306,6 +4641,7 @@ function handlePhanixAuthResult(msg){
   if (msg.sessionToken){
     localStorage.setItem('phanixEmail', msg.email);
     localStorage.setItem('phanixToken', msg.sessionToken);
+    try { window.acSaveAccount(msg.email, msg.sessionToken); } catch(e){}
   }
   // Se já existia progresso salvo nessa conta, ele tem prioridade (é o que
   // o jogador veio buscar); aplica vitórias/acessibilidade recebidos.
@@ -4442,6 +4778,13 @@ function connectServer(idx){
     const savedToken = localStorage.getItem('phanixToken');
     if (savedEmail && savedToken) {
       socket.send(JSON.stringify({ type:'phanixResume', email: savedEmail, sessionToken: savedToken }));
+    } else if (window.acRestoreAccount) {
+      // localStorage vazio: tenta a cópia da conta guardada junto com o conteúdo baixado
+      window.acRestoreAccount().then(function(ok){
+        if (!ok || socket.readyState !== 1) return;
+        (window.__bootState = window.__bootState || {}).resume = false;   // espera a conferência do login
+        socket.send(JSON.stringify({ type:'phanixResume', email: localStorage.getItem('phanixEmail'), sessionToken: localStorage.getItem('phanixToken') }));
+      });
     }
     if (idx === activeServerIndex && matchState === 'queued') trySendQueue();
   };
