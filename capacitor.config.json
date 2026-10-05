@@ -5,5 +5,8 @@
   "server": {
     "url": "https://sharply-skimming-reliance.ngrok-free.dev",
     "cleartext": false
+  },
+  "android": {
+    "overrideUserAgent": "ArenaCraftApp/1.0 (Android; Mobile)"
   }
 }
