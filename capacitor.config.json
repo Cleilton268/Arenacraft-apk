@@ -1,0 +1,9 @@
+{
+  "appId": "com.phanixgames.arenacraft",
+  "appName": "ArenaCraft",
+  "webDir": "www",
+  "server": {
+    "url": "https://sharply-skimming-reliance.ngrok-free.dev",
+    "cleartext": false
+  }
+}
