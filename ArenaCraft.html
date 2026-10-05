@@ -1082,7 +1082,7 @@
   <h1>PERMISSÕES</h1>
   <div class="permSub">Pra ligações, notificações e o jogo funcionarem direito, o ArenaCraft precisa de acesso a:</div>
   <div class="permRow" id="permRow_notif"><span class="permIcon">🔔</span><span class="permInfo"><b>Notificações</b>Avisar de ligações e mensagens</span><span class="permState" id="permState_notif">—</span></div>
-  <div class="permRow" id="permRow_files"><span class="permIcon">📁</span><span class="permInfo"><b>Arquivos</b>Guardar o conteúdo do jogo</span><span class="permState" id="permState_files">—</span></div>
+  <div class="permRow" id="permRow_files"><span class="permIcon">📁</span><span class="permInfo"><b>Arquivos</b>Guardar o conteúdo do jogo e o seu save</span><span class="permState" id="permState_files">—</span></div>
   <div class="permRow" id="permRow_mic"><span class="permIcon">🎤</span><span class="permInfo"><b>Microfone</b>Ligações e áudios no chat</span><span class="permState" id="permState_mic">—</span></div>
   <div class="permRow" id="permRow_phone"><span class="permIcon">📞</span><span class="permInfo"><b>Telefone</b>Receber ligações com o jogo</span><span class="permState" id="permState_phone">—</span></div>
   <button class="mcBtn" id="permAllowBtn" style="width:300px; max-width:90vw; margin-top:10px;">PERMITIR TUDO</button>
@@ -1274,6 +1274,110 @@ if ('serviceWorker' in navigator) {
   };
 })();
 
+// ---- Arquivo de save de verdade ----
+// Guarda a conta e o progresso num ARQUIVO (Documentos/ArenaCraft/arenacraft-save.json) via plugin
+// Filesystem do app. No navegador (sem o plugin) guarda uma cópia na pasta privada do site (OPFS).
+// Ao reinstalar, a tela "Baixando conteúdo..." procura esse arquivo e devolve tudo, inclusive o login.
+(function(){
+  var FILE = 'ArenaCraft/arenacraft-save.json', DIRN = 'DOCUMENTS', OPFS = 'arenacraft-save.json';
+  var KEYS = ['phanixEmail','phanixToken','phanixIsAdmin','arenaPlayerName','arenaKills','arenaSkin','arenaSavedSkin',
+              'arenaAccessibility','arenaBtnScale','arenacraftInbox','arenacraftNovRead','arenacraftInstallId'];
+  var lastWritten = '';
+  function cap(n){ try { return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins[n]; } catch(e){ return null; } }
+  function granted(r){ if (!r) return false; var v = r.publicStorage || r.display || r.granted || r.state; return v === 'granted' || v === true; }
+  function collect(){
+    var o = {};
+    KEYS.forEach(function(k){ try { var v = localStorage.getItem(k); if (v !== null) o[k] = v; } catch(e){} });
+    return o;
+  }
+  function opfsDir(){ return (navigator.storage && navigator.storage.getDirectory) ? navigator.storage.getDirectory() : Promise.reject(new Error('sem OPFS')); }
+  function writeOpfs(text){
+    return opfsDir().then(function(d){ return d.getFileHandle(OPFS, { create:true }); })
+      .then(function(h){ return h.createWritable(); })
+      .then(function(w){ return w.write(text).then(function(){ return w.close(); }); });
+  }
+  function readOpfs(){
+    return opfsDir().then(function(d){ return d.getFileHandle(OPFS); })
+      .then(function(h){ return h.getFile(); }).then(function(f){ return f.text(); });
+  }
+  function parse(t){
+    try { var o = JSON.parse(t); return (o && o.v === 1 && o.data && typeof o.data === 'object') ? o.data : null; } catch(e){ return null; }
+  }
+  function restoreFrom(data){
+    var n = 0;
+    Object.keys(data).forEach(function(k){
+      try {
+        if (KEYS.indexOf(k) >= 0 && typeof data[k] === 'string' && localStorage.getItem(k) === null){ localStorage.setItem(k, data[k]); n++; }
+      } catch(e){}
+    });
+    return n > 0;
+  }
+
+  // Pede acesso aos arquivos (aparece o aviso do próprio celular). null = sem plugin (navegador).
+  window.acEnsureFilePerm = function(){
+    var fs = cap('Filesystem'); if (!fs || !fs.requestPermissions) return Promise.resolve(null);
+    var chk = fs.checkPermissions ? fs.checkPermissions() : Promise.resolve(null);
+    return chk.then(function(r){ return (r && granted(r)) ? true : fs.requestPermissions().then(granted); })
+      .catch(function(){ return false; });
+  };
+  // Lê o save. st: 'ok' (achou), 'none' (não existe) ou 'error' (existe/não deu pra ler: não sobrescrever).
+  window.acReadBackup = function(){
+    var fs = cap('Filesystem'), p;
+    if (fs && fs.readFile){
+      p = fs.readFile({ path: FILE, directory: DIRN, encoding: 'utf8' }).then(function(r){
+        var d = parse(typeof r.data === 'string' ? r.data : '');
+        return d ? { st:'ok', data:d } : { st:'error' };
+      }, function(e){
+        return /exist|not found|ENOENT|No such/i.test(String(e && (e.message || e))) ? { st:'none' } : { st:'error' };
+      });
+    } else p = Promise.resolve({ st:'none' });
+    return p.then(function(r){
+      if (r.st !== 'none') return r;
+      return readOpfs().then(function(t){ var d = parse(t); return d ? { st:'ok', data:d } : { st:'none' }; }, function(){ return { st:'none' }; });
+    });
+  };
+  // Devolve o que estiver faltando no aparelho (nunca sobrescreve o que já existe).
+  window.acRestoreBackup = function(){
+    return window.acReadBackup().then(function(b){ return { st:b.st, restored: b.st === 'ok' && restoreFrom(b.data) }; });
+  };
+  // Cria/atualiza o arquivo de save. Devolve { where:'arquivo'|'navegador', bytes } ou null.
+  window.acWriteBackup = function(){
+    var d = collect(); if (!Object.keys(d).length) return Promise.resolve(null);
+    var text = JSON.stringify({ v:1, app:'ArenaCraft', savedAt: Date.now(), data: d });
+    lastWritten = JSON.stringify(d);
+    var fs = cap('Filesystem'), out = { where:null, bytes:text.length };
+    var a = (fs && fs.writeFile)
+      ? fs.writeFile({ path: FILE, data: text, directory: DIRN, encoding: 'utf8', recursive: true }).then(function(){ out.where = 'arquivo'; }, function(){})
+      : Promise.resolve();
+    return a.then(function(){ return writeOpfs(text).then(function(){ if (!out.where) out.where = 'navegador'; }, function(){}); })
+      .then(function(){ return out.where ? out : null; });
+  };
+  // Depois que a pessoa permite os arquivos: se ainda não tem conta aqui, tenta recuperar o save antigo
+  // (true = recuperou e o jogo precisa reiniciar); senão grava o save atual.
+  window.acSyncAfterPermission = function(){
+    var hasAcc = false;
+    try { hasAcc = !!(localStorage.getItem('phanixEmail') && localStorage.getItem('phanixToken')); } catch(e){}
+    if (hasAcc) return window.acWriteBackup().then(function(){ return false; }, function(){ return false; });
+    return window.acReadBackup().then(function(b){
+      if (b.st === 'ok' && restoreFrom(b.data)) return true;
+      if (b.st === 'error') return false;
+      return window.acWriteBackup().then(function(){ return false; }, function(){ return false; });
+    }).catch(function(){ return false; });
+  };
+  // Salva sozinho quando algo muda (e ao sair do app). Só depois da instalação ter terminado,
+  // pra nunca gravar um arquivo vazio por cima do save antigo.
+  function tickSave(){
+    try {
+      if (localStorage.getItem('arenacraftInstalledV1') !== '1') return;
+      if (JSON.stringify(collect()) === lastWritten) return;
+      window.acWriteBackup();
+    } catch(e){}
+  }
+  setInterval(tickSave, 15000);
+  document.addEventListener('visibilitychange', function(){ if (document.hidden) tickSave(); });
+  window.addEventListener('pagehide', tickSave);
+})();
+
 // ---- Tela de permissões ----
 (function(){
   var DONE = 'arenacraftPermsAsked';
@@ -1345,6 +1449,15 @@ if ('serviceWorker' in navigator) {
       if (busy) return; busy = true; allow.textContent = 'PEDINDO...';
       ['notif','files','mic','phone'].forEach(function(k){ setState(k, ''); });
       askNotif().then(askFiles).then(askMic).then(askPhone).then(function(){
+        // com os arquivos liberados: recupera o save antigo (se existir) ou cria o arquivo de save
+        return window.acSyncAfterPermission ? window.acSyncAfterPermission() : false;
+      }).then(function(reload){
+        if (reload){
+          try { localStorage.setItem(DONE, '1'); } catch(e){}
+          allow.textContent = 'RESTAURANDO...';
+          setTimeout(function(){ location.reload(); }, 600);
+          return;
+        }
         busy = false; finished = true; allow.textContent = 'CONTINUAR';
       });
     });
@@ -1505,9 +1618,30 @@ if ('serviceWorker' in navigator) {
           dlSize.textContent = fmtBytes(tot) + '/' + fmtBytes(tot); dlBar.style.width = '100%'; dlPct.textContent = '100%';
           Promise.all(cacheTasks).then(function(){ return new Promise(function(r){ setTimeout(r, 700); }); }).then(function(){
             if (my !== runId) return;
-            try { localStorage.setItem(DL_MARK, '1'); } catch(e){}
-            try { window.acSaveAccountFromLocal(); } catch(e){}   // a conta já logada fica guardada junto com o conteúdo
-            onDone();
+            // Etapa de save: procura o arquivo de save de uma instalação anterior (devolve conta, skin, nome...)
+            // e cria o arquivo de save desta instalação.
+            dlItem.textContent = 'Procurando seu save anterior...';
+            return window.acEnsureFilePerm().then(function(){ return window.acRestoreBackup(); })
+              .catch(function(){ return { st:'error', restored:false }; })
+              .then(function(rs){
+                if (my !== runId) return null;
+                try { localStorage.setItem(DL_MARK, '1'); } catch(e){}
+                try { if (!localStorage.getItem('arenacraftInstallId')) localStorage.setItem('arenacraftInstallId', Date.now().toString(36) + Math.random().toString(36).slice(2, 8)); } catch(e){}
+                try { window.acSaveAccountFromLocal(); } catch(e){}   // a conta já logada fica guardada junto com o conteúdo
+                dlItem.textContent = rs.restored ? 'Save encontrado! Restaurando seus dados...' : 'Criando seu arquivo de save...';
+                if (rs.st === 'error') return { rs: rs, info: null, skipped: true };   // existe um save que não deu pra ler: não sobrescreve
+                return window.acWriteBackup().catch(function(){ return null; }).then(function(info){ return { rs: rs, info: info }; });
+              }).then(function(r){
+                if (!r || my !== runId) return;
+                dlItem.textContent = r.skipped ? 'Sem acesso ao save antigo (permissão negada)'
+                  : r.info ? (r.info.where === 'arquivo' ? 'Save criado em Documentos/ArenaCraft' : 'Save criado neste navegador')
+                  : 'Não consegui criar o arquivo de save';
+                setTimeout(function(){
+                  if (my !== runId) return;
+                  if (r.rs && r.rs.restored){ location.reload(); return; }   // recomeça já com a conta e os dados de volta
+                  onDone();
+                }, 1000);
+              });
           });
           return;
         }
@@ -1635,7 +1769,6 @@ if ('serviceWorker' in navigator) {
           if (my !== runId || finished) { if (my !== runId) document.removeEventListener('visibilitychange', onVisible); return; }
           if (document.visibilityState !== 'visible') return;
           lastT = performance.now();
-          if (typeof window.__bootReconnect === 'function') window.__bootReconnect();
           requestAnimationFrame(tick);
         }
         document.addEventListener('visibilitychange', onVisible);
@@ -1652,6 +1785,15 @@ if ('serviceWorker' in navigator) {
       }, 2000);
     });
   }
+
+  // Conexão caiu durante o carregamento: mostra o aviso de conexão perdida na hora (sem tentar de novo).
+  window.__bootConnLost = function(){
+    if (!window.__bootActive) return;
+    statusEl.textContent = 'Conexão perdida';
+    dlItem.textContent = 'Conexão perdida';
+    offlineBox.style.display = 'flex';
+  };
+  window.addEventListener('offline', function(){ if (window.__bootActive) window.__bootConnLost(); });
 
   // OK no aviso: volta pro "PHANIX GAMES" e refaz a tela de carregamento.
   document.getElementById('bootOfflineOkBtn').addEventListener('click', startBoot);
@@ -3205,6 +3347,7 @@ function doPhanixLogout(){
   localStorage.removeItem('phanixEmail');
   localStorage.removeItem('phanixToken');
   try { window.acClearAccount(); } catch(e){}
+  try { window.acWriteBackup(); } catch(e){}   // o arquivo de save também sai da conta
   phanixStep = 'login';
   renderPhanixContent();
   setLoggedInUI(false);
@@ -4642,6 +4785,7 @@ function handlePhanixAuthResult(msg){
     localStorage.setItem('phanixEmail', msg.email);
     localStorage.setItem('phanixToken', msg.sessionToken);
     try { window.acSaveAccount(msg.email, msg.sessionToken); } catch(e){}
+    try { window.acWriteBackup(); } catch(e){}
   }
   // Se já existia progresso salvo nessa conta, ele tem prioridade (é o que
   // o jogador veio buscar); aplica vitórias/acessibilidade recebidos.
@@ -4763,10 +4907,11 @@ function connectServer(idx){
   clearTimeout(s.retryTimer);
   let socket;
   try { socket = new WebSocket(wsUrlFor(s)); }
-  catch(e){ s.ready = false; s.retryTimer = setTimeout(()=>connectServer(idx), 4000); return; }
+  catch(e){ s.ready = false; return; }
   s.ws = socket;
   socket.onopen = () => {
     s.ready = true;
+    s.wasOpen = true;
     // Carregamento real: a cada conexão nova, "boas-vindas" e "login salvo" voltam a ser pendentes.
     window.__bootState = window.__bootState || {};
     window.__bootState.welcome = false;
@@ -4791,8 +4936,13 @@ function connectServer(idx){
   socket.onclose = () => {
     s.ready = false;
     updateGlobalStatus();
-    if ((navigator.onLine === false || (idx === activeServerIndex && matchState === 'matched')) && typeof showConnectionLostScreen === 'function') showConnectionLostScreen();
-    s.retryTimer = setTimeout(()=>connectServer(idx), 4000);
+    if (s.ws !== socket) return;   // socket antigo, já trocado por outro
+    // NUNCA reconecta em silêncio (nem no carregamento): se a conexão caiu (trocou de internet,
+    // desligou o wi-fi...), mostra a tela de conexão perdida na hora; o OK dela reinicia o jogo.
+    const wasOpen = s.wasOpen; s.wasOpen = false;
+    if (!(wasOpen || navigator.onLine === false)) return;
+    if (window.__bootActive){ if (typeof window.__bootConnLost === 'function') window.__bootConnLost(); return; }
+    if (typeof showConnectionLostScreen === 'function') showConnectionLostScreen();
   };
   socket.onerror = () => { s.ready = false; };
   socket.onmessage = (ev) => {
@@ -8476,11 +8626,9 @@ window.backToTitle = backToTitle;
 document.getElementById('backToTitleBtn').addEventListener('click', backToTitle);
 
 // ---------- Conexão perdida ----------
-// Detecta quando o navegador perde a internet de verdade (wifi/dados
-// desligado) e kika o jogador automaticamente ao apertar OK. Só mostra essa
-// tela vermelha quando a pessoa está DE VERDADE numa partida em andamento —
-// se cair o wifi enquanto está só navegando nos menus, não aparece nada,
-// fica no fundo cinza normal, porque nesse caso não tem partida pra perder.
+// Aparece quando a conexão com o servidor cai (trocou de wi-fi, desligou os dados,
+// servidor reiniciou), tanto nos menus quanto numa partida. O jogo NÃO fica tentando
+// reconectar em silêncio: o OK dessa tela tira a pessoa da partida e reinicia o jogo.
 function showConnectionLostScreen(){
   // Durante a tela de carregamento inicial quem cuida do aviso é o boot.
   if (window.__bootActive) return;
@@ -8491,6 +8639,7 @@ function showConnectionLostScreen(){
   // Fecha os sockets pra o servidor tirar o jogador da sala imediatamente.
   try {
     SERVER_LIST.forEach(function(srv){
+      clearTimeout(srv.retryTimer);
       if (srv.ws && srv.ws.readyState <= 1) srv.ws.close();
     });
   } catch(e){}
